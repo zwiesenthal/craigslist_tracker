@@ -1,12 +1,6 @@
 import requests
 from datetime import datetime
 
-# future additions:
-#    min price
-#    other parameters
-#    location
-
-
 # convert string to an int, excluding all non numeric characters
 def toInt(string):
     BASE = 10
@@ -18,7 +12,6 @@ def toInt(string):
             out += int(char)   
     return out
     
-
 # return (nextIdx, price)
 def findPrice(resp, idx):
     PRICE_STRING = "$"
@@ -70,27 +63,44 @@ def totalCount(resp):
     dailyPosted = toInt(resp[cntStart:cntEnd])
     return dailyPosted
     
+def writePricesToFile(fileName, prices, itemCount):
+    file = open(fileName, 'a')
 
-if __name__ == "__main__":
+    avg = sum(prices) / len(prices)
+    med = median(prices)
+    #dailyPosted = totalCount(resp)
 
-    # get html of bicyces in orange county posted today
-    CATEGORY="bicycles"
+    file.write("{}, {}, {}, {}".format(datetime.today(), itemCount, avg, med))
+
+    #print("Average Price: $" + str(avg))
+    #print("Median  Price: $" + str(med))
+    #print("Daily Posted: " + str(dailyPosted))
+    #print("Date: " + str(datetime.today()))
+
+
+    file.close()
+
+
+def main():
     AREA="orangecounty"
+    CATEGORY="bicycles"
+    
+    # get html of bicyces in orange county posted today
     queryString = f"https://{AREA}.craigslist.org/d/{CATEGORY}/search/bia?postedToday=1"
     resp = requests.get(queryString)
 
     resp = str(resp.content)
 
+    # generate prices and total item count from response
     all_prices = getPrices(resp)
     prices = cleanPrices(all_prices)
+    itemCount = totalCount(resp)
+
+    fileName = AREA + '_' + CATEGORY + '.csv'
+    writePricesToFile(fileName=fileName, prices=prices, itemCount=itemCount)
 
 
-    avg = sum(prices) / len(prices)
-    med = median(prices)
-    dailyPosted = totalCount(resp)
 
-    print("Average Price: $" + str(avg))
-    print("Median  Price: $" + str(med))
-    print("Daily Posted: " + str(dailyPosted))
-    print("Date: " + str(datetime.today()))
+if __name__ == "__main__":
+   main()
     
