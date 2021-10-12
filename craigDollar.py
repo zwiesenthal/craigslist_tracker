@@ -63,30 +63,31 @@ def totalCount(resp):
     dailyPosted = toInt(resp[cntStart:cntEnd])
     return dailyPosted
     
-def writePricesToFile(fileName, prices, itemCount):
+def writePricesToFile(fileName, itemCount, mean, median):
     file = open(fileName, 'a')
-
-    avg = sum(prices) / len(prices)
-    med = median(prices)
-    #dailyPosted = totalCount(resp)
-
-    file.write("{}, {}, {}, {}".format(datetime.today(), itemCount, avg, med))
-
-    #print("Average Price: $" + str(avg))
-    #print("Median  Price: $" + str(med))
-    #print("Daily Posted: " + str(dailyPosted))
-    #print("Date: " + str(datetime.today()))
-
-
+    file.write("{}, {}, {}, {}".format(datetime.today(), itemCount, mean, median))
     file.close()
 
+def postPrices(priceArr, area, category, flags):
+    url = "http://127.0.0.1:5000/bike"
+
+    response = requests.post(url, data =
+        {"prices" : priceArr, 
+        "date": datetime.today(),
+        "area": area,
+        "category": category,
+        "flags": flags
+        })
+
+    print(response)
 
 def main():
     AREA="orangecounty"
     CATEGORY="bicycles"
+    FLAGS="postedToday=1"
     
     # get html of bicyces in orange county posted today
-    queryString = f"https://{AREA}.craigslist.org/d/{CATEGORY}/search/bia?postedToday=1"
+    queryString = f"https://{AREA}.craigslist.org/d/{CATEGORY}/search/bia?{FLAGS}"
     resp = requests.get(queryString)
 
     resp = str(resp.content)
@@ -96,9 +97,12 @@ def main():
     prices = cleanPrices(all_prices)
     itemCount = totalCount(resp)
 
-    fileName = AREA + '_' + CATEGORY + '.csv'
-    writePricesToFile(fileName=fileName, prices=prices, itemCount=itemCount)
+    mean = sum(prices) / len(prices)
+    medianVal = median(prices)
 
+    fileName = AREA + '_' + CATEGORY + '.csv'
+    writePricesToFile(fileName=fileName, itemCount=itemCount, mean=mean, median=medianVal)
+    postPrices(priceArr=prices, area=AREA, category=CATEGORY, flags=FLAGS)
 
 
 if __name__ == "__main__":
