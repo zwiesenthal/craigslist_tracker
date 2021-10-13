@@ -1,12 +1,6 @@
 import requests
 from datetime import datetime
 
-# future additions:
-#    min price
-#    other parameters
-#    location
-
-
 # convert string to an int, excluding all non numeric characters
 def toInt(string):
     BASE = 10
@@ -18,7 +12,6 @@ def toInt(string):
             out += int(char)   
     return out
     
-
 # return (nextIdx, price)
 def findPrice(resp, idx):
     PRICE_STRING = "$"
@@ -70,27 +63,48 @@ def totalCount(resp):
     dailyPosted = toInt(resp[cntStart:cntEnd])
     return dailyPosted
     
+def writePricesToFile(fileName, itemCount, mean, median):
+    file = open(fileName, 'a')
+    file.write("{}, {}, {}, {}".format(datetime.today(), itemCount, mean, median))
+    file.close()
 
-if __name__ == "__main__":
+def postPrices(priceArr, area, category, flags):
+    url = "http://127.0.0.1:5000/bike"
 
-    # get html of bicyces in orange county posted today
-    CATEGORY="bicycles"
+    response = requests.post(url, data =
+        {"prices" : priceArr, 
+        "date": datetime.today(),
+        "area": area,
+        "category": category,
+        "flags": flags
+        })
+
+    print(response)
+
+def main():
     AREA="orangecounty"
-    queryString = f"https://{AREA}.craigslist.org/d/{CATEGORY}/search/bia?postedToday=1"
+    CATEGORY="bicycles"
+    FLAGS="postedToday=1"
+    
+    # get html of bicyces in orange county posted today
+    queryString = f"https://{AREA}.craigslist.org/d/{CATEGORY}/search/bia?{FLAGS}"
     resp = requests.get(queryString)
 
     resp = str(resp.content)
 
+    # generate prices and total item count from response
     all_prices = getPrices(resp)
     prices = cleanPrices(all_prices)
+    itemCount = totalCount(resp)
+
+    mean = sum(prices) / len(prices)
+    medianVal = median(prices)
+
+    fileName = AREA + '_' + CATEGORY + '.csv'
+    writePricesToFile(fileName=fileName, itemCount=itemCount, mean=mean, median=medianVal)
+    postPrices(priceArr=prices, area=AREA, category=CATEGORY, flags=FLAGS)
 
 
-    avg = sum(prices) / len(prices)
-    med = median(prices)
-    dailyPosted = totalCount(resp)
-
-    print("Average Price: $" + str(avg))
-    print("Median  Price: $" + str(med))
-    print("Daily Posted: " + str(dailyPosted))
-    print("Date: " + str(datetime.today()))
+if __name__ == "__main__":
+   main()
     
